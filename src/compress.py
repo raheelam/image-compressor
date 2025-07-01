@@ -46,7 +46,7 @@ def compress_image(in_path: Path, out_path: Path) -> None:
 
     # run k-means on downsampled copy
     small = arr[::2, ::2].reshape(-1, 3)
-    km = KMeans(n_clusters=k, n_init="auto", random_state=0, batch_size=10000)
+    km = KMeans(n_clusters=k, n_init=10, random_state=0, batch_size=10000)
     km.fit(small)
     centroids = km.cluster_centers_.astype(np.float32)  # (k,3)
 
