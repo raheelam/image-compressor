@@ -7,10 +7,25 @@ from typing import Tuple
 import numpy as np
 import torch
 from PIL import Image
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans as KMeans
 
 from .adaptive_k import AdaptiveKNet, predict_k, DEVICE, MODEL_PATH as AK_PATH
 from .refine_centroid import RefineNet, MODEL_PATH as RC_PATH
+
+# BEGIN PATCH: environment tweaks for low-resource hosts
+import os, warnings
+for var in (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+):
+    os.environ.setdefault(var, "1")
+warnings.filterwarnings("ignore", category=UserWarning)
+
+torch.set_num_threads(1)
+# END PATCH
 
 
 def _load_models() -> Tuple[AdaptiveKNet, RefineNet]:
@@ -31,7 +46,7 @@ def compress_image(in_path: Path, out_path: Path) -> None:
 
     # run k-means on downsampled copy
     small = arr[::2, ::2].reshape(-1, 3)
-    km = KMeans(n_clusters=k, n_init="auto", random_state=0)
+    km = KMeans(n_clusters=k, n_init="auto", random_state=0, batch_size=10000)
     km.fit(small)
     centroids = km.cluster_centers_.astype(np.float32)  # (k,3)
 
